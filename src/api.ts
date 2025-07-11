@@ -887,3 +887,77 @@ export async function getProject(id: string) {
   const { data } = await todoistApi.get<Project>(`/projects/${id}`);
   return data;
 }
+
+// =====================================
+// Streak Management API
+// =====================================
+
+export type Streak = {
+  id: string; // nanoidで生成されるユニークID
+  taskContent: string; // ストリークするタスクの内容
+  projectId?: string; // Todoistプロジェクトの任意ID
+  currentDay: number; // 現在の日数
+  startedAt: string; // 開始日時（ISO 8601形式）
+  lastUpdatedAt: string; // 最終更新日（YYYY-MM-DD形式）
+};
+
+const STREAKS_STORAGE_KEY = "streaks";
+
+export async function getStreaks(): Promise<Streak[]> {
+  try {
+    const { LocalStorage } = await import("@raycast/api");
+    const data = await LocalStorage.getItem<string>(STREAKS_STORAGE_KEY);
+    if (!data) {
+      return [];
+    }
+    return JSON.parse(data);
+  } catch (error) {
+    console.error("Failed to get streaks from local storage:", error);
+    return [];
+  }
+}
+
+export async function saveStreak(streak: Streak): Promise<void> {
+  try {
+    const { LocalStorage } = await import("@raycast/api");
+    const existingStreaks = await getStreaks();
+    const updatedStreaks = [...existingStreaks, streak];
+    await LocalStorage.setItem(STREAKS_STORAGE_KEY, JSON.stringify(updatedStreaks));
+  } catch (error) {
+    console.error("Failed to save streak to local storage:", error);
+    throw error;
+  }
+}
+
+export async function updateStreak(streakId: string, updates: Partial<Omit<Streak, "id">>): Promise<void> {
+  try {
+    const { LocalStorage } = await import("@raycast/api");
+    const streaks = await getStreaks();
+    const updatedStreaks = streaks.map((streak) => (streak.id === streakId ? { ...streak, ...updates } : streak));
+    await LocalStorage.setItem(STREAKS_STORAGE_KEY, JSON.stringify(updatedStreaks));
+  } catch (error) {
+    console.error("Failed to update streak:", error);
+    throw error;
+  }
+}
+
+export async function deleteStreak(streakId: string): Promise<void> {
+  try {
+    const { LocalStorage } = await import("@raycast/api");
+    const streaks = await getStreaks();
+    const filteredStreaks = streaks.filter((streak) => streak.id !== streakId);
+    await LocalStorage.setItem(STREAKS_STORAGE_KEY, JSON.stringify(filteredStreaks));
+  } catch (error) {
+    console.error("Failed to delete streak:", error);
+    throw error;
+  }
+}
+
+export async function createStreakTask(streak: Streak): Promise<void> {
+  const todoistApi = getTodoistApi();
+  await todoistApi.post("/tasks", {
+    content: `${streak.taskContent} - ${streak.currentDay}日目`,
+    project_id: streak.projectId,
+    due_string: "today",
+  });
+}

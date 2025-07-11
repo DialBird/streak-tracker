@@ -1,6 +1,6 @@
 {
   "$schema": "https://www.raycast.com/schemas/extension.json",
-  "name": "Streak Tracker",
+  "name": "streak-tracker",
   "title": "Streak Tracker",
   "description": "Check your Todoist tasks and quickly create new ones",
   "icon": "todoist.png",
@@ -265,6 +265,28 @@
       "description": "When a task is chosen as the focused one, you can open it directly using this command.",
       "mode": "no-view",
       "disabledByDefault": true
+    },
+    {
+      "name": "start-streak",
+      "title": "Start Streak",
+      "subtitle": "Streak Tracker",
+      "description": "Start a new habit streak task that will be created daily in Todoist.",
+      "mode": "view"
+    },
+    {
+      "name": "manage-streaks",
+      "title": "Manage Streaks",
+      "subtitle": "Streak Tracker",
+      "description": "View and manage your active habit streaks.",
+      "mode": "view"
+    },
+    {
+      "name": "streak-background",
+      "title": "Streak Background Updater",
+      "subtitle": "Streak Tracker",
+      "description": "Automatically update streak tasks daily in the background.",
+      "mode": "no-view",
+      "interval": "24h"
     }
   ],
   "tools": [
@@ -412,6 +434,31 @@
       "name": "delete-comment",
       "title": "Delete Comment",
       "description": "Deletes a comment from a Todoist task"
+    },
+    {
+      "name": "get-streaks",
+      "title": "Get Streaks",
+      "description": "Retrieves streak data from local storage"
+    },
+    {
+      "name": "save-streak",
+      "title": "Save Streak",
+      "description": "Saves a new streak to local storage"
+    },
+    {
+      "name": "update-streak-day",
+      "title": "Update Streak Day",
+      "description": "Updates the day count for a streak"
+    },
+    {
+      "name": "delete-streak",
+      "title": "Delete Streak",
+      "description": "Deletes a streak from local storage"
+    },
+    {
+      "name": "check-daily-update",
+      "title": "Check Daily Update",
+      "description": "Checks if a streak has already been updated today"
     }
   ],
   "ai": {
@@ -660,6 +707,7 @@
     "form-data": "^4.0.2",
     "lodash": "^4.17.21",
     "mime": "^4.0.7",
+    "nanoid": "^5.0.9",
     "node-fetch": "^3.3.2",
     "remove-markdown": "^0.6.0"
   },
