@@ -1,7 +1,7 @@
 {
   "$schema": "https://www.raycast.com/schemas/extension.json",
-  "name": "todoist",
-  "title": "Todoist",
+  "name": "Streak Tracker",
+  "title": "Streak Tracker",
   "description": "Check your Todoist tasks and quickly create new ones",
   "icon": "todoist.png",
   "author": "thomaslombart",
@@ -25,7 +25,8 @@
     "henningmu",
     "FlohGro",
     "dedalusj",
-    "william_sault"
+    "william_sault",
+    "dialbird"
   ],
   "commands": [
     {
