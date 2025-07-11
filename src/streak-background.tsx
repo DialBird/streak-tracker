@@ -72,4 +72,9 @@ async function StreakBackground() {
   }
 }
 
-export default withTodoistApi(StreakBackground);
+function WrappedStreakBackground() {
+  StreakBackground();
+  return null;
+}
+
+export default withTodoistApi(WrappedStreakBackground);

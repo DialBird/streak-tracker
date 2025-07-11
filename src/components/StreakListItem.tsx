@@ -1,44 +1,52 @@
 /**
- * ストリーク一覧項目コンポーネント
+ * ストリークリストアイテムコンポーネント
  *
- * このファイルは、ストリーク一覧での各ストリーク項目を表示するコンポーネントを定義する。
- * 既存のProjectListItemパターンに合わせて実装している。
+ * このファイルは、ストリーク一覧での個別ストリーク表示を実装する。
+ * 削除確認アクション、表示情報を含む。
+ * 既存のListItemパターンに合わせて実装している。
  */
 
-import { ActionPanel, Action, List, confirmAlert, Alert } from "@raycast/api";
+import { ActionPanel, Action, Icon, List, Alert, confirmAlert } from "@raycast/api";
 
 import { Streak } from "../api";
-import { getStreakTitle, getStreakSubtitle, getStreakAccessory } from "../helpers/streaks";
+import { getStreakTitle } from "../helpers/streaks";
 
-interface StreakListItemProps {
+type Props = {
   streak: Streak;
-  onDelete: (streakId: string) => Promise<void>;
-}
+  onDelete: (streakId: string) => void;
+};
 
-export default function StreakListItem({ streak, onDelete }: StreakListItemProps) {
+export default function StreakListItem({ streak, onDelete }: Props) {
   async function handleDelete() {
     const confirmed = await confirmAlert({
       title: "ストリークを削除しますか？",
-      message: `「${streak.taskContent}」のストリーク（${streak.currentDay}日目）を削除します。この操作は取り消せません。`,
+      message: `「${streak.taskContent}」のストリーク記録が削除されます。`,
       primaryAction: {
         title: "削除",
         style: Alert.ActionStyle.Destructive,
       },
+      dismissAction: {
+        title: "キャンセル",
+      },
     });
 
     if (confirmed) {
-      await onDelete(streak.id);
+      onDelete(streak.id);
     }
   }
 
   return (
     <List.Item
       title={getStreakTitle(streak)}
-      subtitle={getStreakSubtitle(streak)}
-      accessories={[{ text: getStreakAccessory(streak) }]}
+      subtitle={`${streak.currentDay}日継続中`}
+      accessories={[
+        {
+          text: `開始: ${new Date(streak.startedAt).toLocaleDateString()}`,
+        },
+      ]}
       actions={
         <ActionPanel>
-          <Action title="ストリークを削除" style={Action.Style.Destructive} onAction={handleDelete} />
+          <Action title="削除" icon={Icon.Trash} style={Action.Style.Destructive} onAction={handleDelete} />
         </ActionPanel>
       }
     />

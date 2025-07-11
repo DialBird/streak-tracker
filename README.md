@@ -1,29 +1,49 @@
-# Todoist
+# Streak Tracker
+
+Todoistを使ったハビットトラッキング（継続記録）システムです。
+
+## 概要
+
+このRaycast拡張機能は、習慣の継続をサポートするストリークトラッカーです。設定した習慣を毎日Todoistのタスクとして自動生成し、日数をカウントアップしながら継続を可視化します。
+
+## 使い方
+
+### 1. 初回セットアップ
+- **Start Streak**コマンドでストリークを作成
+- タスク内容（例：「英語学習」）とプロジェクトを選択
+- 1日目からスタート
+
+### 2. 毎日の自動化フロー  
+- **バックグラウンド処理**が24時間間隔で自動実行
+- 全ストリークの日数を+1
+- Todoistに「英語学習 - 15日目」形式のタスクを自動作成
+- 重複防止で1日1回のみ実行
+
+### 3. 日常作業
+- **Todoistアプリで普通にタスク完了**
+- 特別な操作は不要、通常通りタスクにチェック
+- ストリーク継続は自動管理
+
+### 4. 管理操作（必要時のみ）
+- **Manage Streaks**コマンドでストリーク一覧確認・削除
+- 新規ストリーク追加も可能
+
+## 特徴
+
+- **完全自動化**: 一度設定したら放置でOK
+- **Todoist連携**: 既存のTodoistワークフローに自然に統合
+- **日数表示**: 「〜 - X日目」でモチベーション維持
+- **プロジェクト対応**: Todoistの任意プロジェクトに配置可能
+- **重複防止**: 1日1回のみタスク生成
+
+## コマンド
+
+1. **Start Streak** - 新しいストリーク開始
+2. **Manage Streaks** - ストリーク管理（一覧・削除・追加）
+3. **Streak Background Updater** - 自動更新処理（バックグラウンド）
+
+## 認証
+
+TodoistのOAuth認証またはAPIトークンが必要です。初回実行時に認証を求められます。
 
 **This extension is not created by, affiliated with, or supported by Doist.**
-
-Check your Todoist tasks from within Raycast and quickly create new ones.
-
-## Create Tasks View
-
-You can quickly access your `Home` command favorites views using deep-links and quick-links. Here's how:
-
-1. Open the `Home` command and select your view in the dropdown (e.g `All Tasks` or a specific project)
-2. Search for `Create View Quicklink` in the actions (`⌘` + `K`).
-3. Give the quicklink a custom name (optional) and create it (`⌘` + `⏎`).
-4. Use Raycast root search to find your new quicklink and quickly access your tasks view.
-
-This makes it easy to access any of your views, including projects and labels!
-
-## Disabled Commands
-
-This extension includes a few commands that are disabled by default. You can enable them by going to the extension's settings. These commands are:
-
-- `Create Project`
-- `Unfocus Current Task`
-
-## Using the Extension With an API Token
-
-In most cases, you can use OAuth to authenticate with Todoist. You'll be prompted to connect your Todoist account when using any of the extension's commands.
-
-However, if you prefer, you can also use an API token. To do so, you need to retrieve your token from the [integration settings view](https://todoist.com/app/settings/integrations) under the section called **API token**. Copy it and paste in the extension's preferences under **Todoist Token**.
