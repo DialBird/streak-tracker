@@ -6,7 +6,7 @@
  * 制約: OAuth認証が必要、Raycast内でのみ動作
  */
 
-import { OAuth } from "@raycast/api";
+import { getPreferenceValues } from "@raycast/api";
 import axios from "axios";
 import React from "react";
 
@@ -19,19 +19,32 @@ export function getTodoistApi() {
   return todoistApi;
 }
 
+interface Preferences {
+  token: string;
+  dailyUpdateTime: string;
+  timezone: string;
+}
+
 export function withTodoistApi<T extends object>(Component: React.ComponentType<T>) {
   return function WithTodoistApiComponent(props: T) {
     React.useEffect(() => {
-      // 簡略化: プリファレンスのトークンを使用
-      const token = process.env.TODOIST_TOKEN || "";
-      if (token) {
-        todoistApi = axios.create({
-          baseURL: "https://api.todoist.com/rest/v2",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        });
+      try {
+        const preferences = getPreferenceValues<Preferences>();
+        const token = preferences.token;
+
+        if (token) {
+          todoistApi = axios.create({
+            baseURL: "https://api.todoist.com/rest/v2",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          });
+        } else {
+          console.warn("Todoist token not found in preferences");
+        }
+      } catch (error) {
+        console.error("Failed to initialize Todoist API:", error);
       }
     }, []);
 
