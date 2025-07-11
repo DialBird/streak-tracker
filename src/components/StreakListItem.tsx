@@ -14,9 +14,10 @@ import { getStreakTitle } from "../helpers/streaks";
 type Props = {
   streak: Streak;
   onDelete: (streakId: string) => void;
+  onEdit: (streak: Streak) => void;
 };
 
-export default function StreakListItem({ streak, onDelete }: Props) {
+export default function StreakListItem({ streak, onDelete, onEdit }: Props) {
   async function handleDelete() {
     const confirmed = await confirmAlert({
       title: "ストリークを削除しますか？",
@@ -38,7 +39,7 @@ export default function StreakListItem({ streak, onDelete }: Props) {
   return (
     <List.Item
       title={getStreakTitle(streak)}
-      subtitle={`${streak.currentDay}日継続中`}
+      subtitle={`${streak.currentDay}日継続中 | P${streak.priority}`}
       accessories={[
         {
           text: `開始: ${new Date(streak.startedAt).toLocaleDateString()}`,
@@ -46,6 +47,7 @@ export default function StreakListItem({ streak, onDelete }: Props) {
       ]}
       actions={
         <ActionPanel>
+          <Action title="編集" icon={Icon.Pencil} onAction={() => onEdit(streak)} />
           <Action title="削除" icon={Icon.Trash} style={Action.Style.Destructive} onAction={handleDelete} />
         </ActionPanel>
       }

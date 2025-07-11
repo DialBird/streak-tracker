@@ -6,20 +6,36 @@
  * 既存のshow-projectsパターンに合わせて実装している。
  */
 
-import { ActionPanel, Action, Icon, List } from "@raycast/api";
+import { ActionPanel, Action, Icon, List, useNavigation } from "@raycast/api";
 
+import { Streak, updateFullStreak } from "./api";
+import StreakEditForm from "./components/StreakEditForm";
 import StreakForm from "./components/StreakForm";
 import StreakListItem from "./components/StreakListItem";
 import { withTodoistApi } from "./helpers/withTodoistApi";
 import { useStreakData } from "./hooks/useStreakData";
 
 function ManageStreaks() {
-  const { streaks, isLoading, removeStreak, addStreak } = useStreakData();
+  const { push } = useNavigation();
+  const { streaks, isLoading, removeStreak, addStreak, loadStreaks } = useStreakData();
+
+  async function handleStreakUpdate(updatedStreak: Streak) {
+    try {
+      await updateFullStreak(updatedStreak);
+      await loadStreaks();
+    } catch (error) {
+      console.error("Failed to update streak:", error);
+    }
+  }
+
+  function handleStreakEdit(streak: Streak) {
+    push(<StreakEditForm streak={streak} onStreakUpdated={handleStreakUpdate} />);
+  }
 
   return (
     <List searchBarPlaceholder="ストリークを検索" isLoading={isLoading}>
       {streaks.map((streak) => (
-        <StreakListItem key={streak.id} streak={streak} onDelete={removeStreak} />
+        <StreakListItem key={streak.id} streak={streak} onDelete={removeStreak} onEdit={handleStreakEdit} />
       ))}
 
       <List.EmptyView

@@ -6,11 +6,25 @@
  * 制約: 既存のストリーク一覧に追加して保存
  */
 
-import { saveStreak, Streak } from "../api";
+import { saveStreak } from "../api";
 
-export default async function saveStreakTool(params: { streak: Streak }): Promise<void> {
+interface StreakToolParams {
+  id: string;
+  taskContent: string;
+  projectId?: string;
+  priority: "1" | "2" | "3" | "4";
+  currentDay: number;
+  startedAt: string;
+  lastUpdatedAt: string;
+}
+
+export default async function saveStreakTool(params: { streak: StreakToolParams }): Promise<void> {
   try {
-    await saveStreak(params.streak);
+    const streak = {
+      ...params.streak,
+      priority: parseInt(params.streak.priority) as 1 | 2 | 3 | 4,
+    };
+    await saveStreak(streak);
   } catch (error) {
     console.error("Failed to save streak:", error);
     throw error;

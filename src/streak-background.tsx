@@ -6,7 +6,7 @@
  * 既存パターンに合わせてAPI関数を使用する。
  */
 
-import { showToast, Toast, getPreferenceValues } from "@raycast/api";
+import { showToast, Toast } from "@raycast/api";
 
 import { getStreaks, updateStreak, createStreakTask } from "./api";
 import { isUpdatedToday, getTodayString, getNextDay } from "./helpers/streaks";

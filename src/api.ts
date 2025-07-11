@@ -93,22 +93,31 @@ export async function getFilterTasks(query: string) {
   }
 }
 
-export async function initialSync() {
-  return syncRequest({
-    sync_token: "*",
-    resource_types: [
-      "user",
-      "projects",
-      "items",
-      "sections",
-      "labels",
-      "filters",
-      "collaborators",
-      "reminders",
-      "locations",
-      "notes",
-    ],
-  });
+export async function initialSync(): Promise<SyncData> {
+  const todoistApi = getTodoistApi();
+
+  try {
+    // REST APIを使って必要なデータを取得
+    const [projects] = await Promise.all([todoistApi.get("/projects").then((res) => res.data)]);
+
+    return {
+      sync_token: "*",
+      projects: projects || [],
+      items: [],
+      labels: [],
+      filters: [],
+      locations: [],
+      notes: [],
+      reminders: [],
+      sections: [],
+      collaborators: [],
+      collaborator_states: [],
+      user: {} as any,
+    };
+  } catch (error) {
+    console.error("Failed to sync data:", error);
+    throw error;
+  }
 }
 
 export type AddProjectArgs = {
@@ -896,6 +905,7 @@ export type Streak = {
   id: string; // nanoidで生成されるユニークID
   taskContent: string; // ストリークするタスクの内容
   projectId?: string; // Todoistプロジェクトの任意ID
+  priority: 1 | 2 | 3 | 4; // 優先度（1=最高、4=最低）
   currentDay: number; // 現在の日数
   startedAt: string; // 開始日時（ISO 8601形式）
   lastUpdatedAt: string; // 最終更新日（YYYY-MM-DD形式）
@@ -910,7 +920,16 @@ export async function getStreaks(): Promise<Streak[]> {
     if (!data) {
       return [];
     }
-    return JSON.parse(data);
+    const streaks = JSON.parse(data);
+
+    // 古いデータのマイグレーション（priorityフィールドが存在しない場合）
+    const migratedStreaks = streaks.map((streak: any) => ({
+      ...streak,
+      priority: streak.priority || 4, // デフォルト優先度
+      currentDay: streak.currentDay || 1, // デフォルト日数
+    }));
+
+    return migratedStreaks;
   } catch (error) {
     console.error("Failed to get streaks from local storage:", error);
     return [];
@@ -941,6 +960,18 @@ export async function updateStreak(streakId: string, updates: Partial<Omit<Strea
   }
 }
 
+export async function updateFullStreak(updatedStreak: Streak): Promise<void> {
+  try {
+    const { LocalStorage } = await import("@raycast/api");
+    const streaks = await getStreaks();
+    const updatedStreaks = streaks.map((streak) => (streak.id === updatedStreak.id ? updatedStreak : streak));
+    await LocalStorage.setItem(STREAKS_STORAGE_KEY, JSON.stringify(updatedStreaks));
+  } catch (error) {
+    console.error("Failed to update full streak:", error);
+    throw error;
+  }
+}
+
 export async function deleteStreak(streakId: string): Promise<void> {
   try {
     const { LocalStorage } = await import("@raycast/api");
@@ -958,6 +989,7 @@ export async function createStreakTask(streak: Streak): Promise<void> {
   await todoistApi.post("/tasks", {
     content: `${streak.taskContent} - ${streak.currentDay}日目`,
     project_id: streak.projectId,
+    priority: streak.priority,
     due_string: "today",
   });
 }

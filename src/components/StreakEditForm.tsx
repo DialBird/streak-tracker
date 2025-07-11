@@ -1,29 +1,29 @@
 /**
- * ストリーク作成フォームコンポーネント
+ * ストリーク編集フォームコンポーネント
  *
- * このファイルは、新しいストリークを作成するためのフォームUIを提供する。
- * プロジェクト選択、タスク名入力、作成処理を含む。
+ * このファイルは、既存のストリークを編集するためのフォームUIを提供する。
+ * 優先度、日数、タスク名の変更が可能。
  * 既存のコンポーネントパターンに合わせて実装している。
  */
 
 import { ActionPanel, Action, Form, showToast, Toast, useNavigation } from "@raycast/api";
-import { nanoid } from "nanoid";
 import { useState } from "react";
 
-import { Streak, createStreakTask } from "../api";
-import { getTodayString } from "../helpers/streaks";
+import { Streak } from "../api";
 import useSyncData from "../hooks/useSyncData";
 
 type Props = {
-  onStreakCreated: (streak: Streak) => void;
+  streak: Streak;
+  onStreakUpdated: (updatedStreak: Streak) => void;
 };
 
-export default function StreakForm({ onStreakCreated }: Props) {
+export default function StreakEditForm({ streak, onStreakUpdated }: Props) {
   const { pop } = useNavigation();
   const { data } = useSyncData();
-  const [taskContent, setTaskContent] = useState("");
-  const [projectId, setProjectId] = useState("");
-  const [priority, setPriority] = useState<1 | 2 | 3 | 4>(4);
+  const [taskContent, setTaskContent] = useState(streak.taskContent || "");
+  const [projectId, setProjectId] = useState(streak.projectId || "");
+  const [priority, setPriority] = useState<1 | 2 | 3 | 4>(streak.priority || 4);
+  const [currentDay, setCurrentDay] = useState((streak.currentDay || 1).toString());
 
   async function handleSubmit() {
     if (!taskContent.trim()) {
@@ -34,35 +34,38 @@ export default function StreakForm({ onStreakCreated }: Props) {
       return;
     }
 
+    const dayNumber = parseInt(currentDay);
+    if (isNaN(dayNumber) || dayNumber < 1) {
+      await showToast({
+        style: Toast.Style.Failure,
+        title: "日数は1以上の数値を入力してください",
+      });
+      return;
+    }
+
     try {
-      const streak: Streak = {
-        id: nanoid(),
+      const updatedStreak: Streak = {
+        ...streak,
         taskContent: taskContent.trim(),
         projectId: projectId || undefined,
         priority,
-        currentDay: 1,
-        startedAt: new Date().toISOString(),
-        lastUpdatedAt: getTodayString(),
+        currentDay: dayNumber,
       };
 
-      // 初回タスクを作成
-      await createStreakTask(streak);
-
-      // ローカルストレージに保存
-      onStreakCreated(streak);
+      onStreakUpdated(updatedStreak);
 
       await showToast({
         style: Toast.Style.Success,
-        title: "ストリーク開始",
-        message: `${taskContent} - 1日目のタスクを作成しました`,
+        title: "ストリーク更新完了",
+        message: `${taskContent}の設定を更新しました`,
       });
 
       pop();
     } catch (error) {
-      console.error("Failed to create streak:", error);
+      console.error("Failed to update streak:", error);
       await showToast({
         style: Toast.Style.Failure,
-        title: "ストリーク作成に失敗しました",
+        title: "ストリーク更新に失敗しました",
         message: error instanceof Error ? error.message : "不明なエラー",
       });
     }
@@ -74,7 +77,7 @@ export default function StreakForm({ onStreakCreated }: Props) {
     <Form
       actions={
         <ActionPanel>
-          <Action.SubmitForm title="ストリーク開始" onSubmit={handleSubmit} />
+          <Action.SubmitForm title="更新" onSubmit={handleSubmit} />
         </ActionPanel>
       }
     >
@@ -84,6 +87,13 @@ export default function StreakForm({ onStreakCreated }: Props) {
         placeholder="例: 英語学習"
         value={taskContent}
         onChange={setTaskContent}
+      />
+      <Form.TextField
+        id="currentDay"
+        title="現在の日数"
+        placeholder="例: 15"
+        value={currentDay}
+        onChange={setCurrentDay}
       />
       <Form.Dropdown id="projectId" title="プロジェクト" value={projectId} onChange={setProjectId}>
         <Form.Dropdown.Item value="" title="インボックス" />
