@@ -1,12 +1,12 @@
 /**
  * ストリーク自動更新バックグラウンドコマンド
  *
- * このファイルは、24時間間隔で実行されるバックグラウンド処理を実装する。
- * 全てのストリークについて日数を+1してTodoistにタスクを作成する。
+ * このファイルは、1時間間隔で実行されるバックグラウンド処理を実装する。
+ * 設定時間になったら全てのストリークについて日数を+1してTodoistにタスクを作成する。
  * 既存パターンに合わせてAPI関数を使用する。
  */
 
-import { showToast, Toast } from "@raycast/api";
+import { showToast, Toast, getPreferenceValues } from "@raycast/api";
 
 import { getStreaks, updateStreak, createStreakTask } from "./api";
 import { isUpdatedToday, getTodayString, getNextDay } from "./helpers/streaks";

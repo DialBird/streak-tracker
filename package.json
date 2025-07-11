@@ -32,7 +32,7 @@
       "subtitle": "Streak Tracker",
       "description": "Automatically update streak tasks daily in the background.",
       "mode": "no-view",
-      "interval": "24h"
+      "interval": "1h"
     }
   ],
   "tools": [
@@ -70,6 +70,45 @@
       "title": "Todoist Token",
       "description": "Your Todoist Token. Find it in Todoist integration settings view.",
       "placeholder": "Enter your Todoist token"
+    },
+    {
+      "name": "dailyUpdateTime",
+      "type": "textfield",
+      "required": false,
+      "title": "Daily Update Time",
+      "description": "毎日ストリークタスクを生成する時間（24時間形式、例: 00:00）",
+      "default": "00:00",
+      "placeholder": "00:00"
+    },
+    {
+      "name": "timezone",
+      "type": "dropdown",
+      "required": false,
+      "title": "Timezone",
+      "description": "タスク生成時間の基準となるタイムゾーン",
+      "default": "Asia/Tokyo",
+      "data": [
+        {
+          "title": "Asia/Tokyo (JST)",
+          "value": "Asia/Tokyo"
+        },
+        {
+          "title": "America/New_York (EST)",
+          "value": "America/New_York"
+        },
+        {
+          "title": "America/Los_Angeles (PST)",
+          "value": "America/Los_Angeles"
+        },
+        {
+          "title": "Europe/London (GMT)",
+          "value": "Europe/London"
+        },
+        {
+          "title": "UTC",
+          "value": "UTC"
+        }
+      ]
     }
   ],
   "dependencies": {
