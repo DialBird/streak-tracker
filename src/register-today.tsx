@@ -13,21 +13,41 @@ import { getStreaks, updateStreak, createStreakTask } from "./api";
 import { isUpdatedToday, getTodayString, getNextDay } from "./helpers/streaks";
 import { withTodoistApi } from "./helpers/withTodoistApi";
 
+// グローバルな実行状態管理
+let isProcessingRegistration = false;
+const processedToday = new Set<string>();
+let lastProcessedDate = "";
+
 function RegisterTodayStreaks() {
   const [isLoading, setIsLoading] = useState(true);
   const [result, setResult] = useState<string>("");
   const [hasExecuted, setHasExecuted] = useState(false);
 
   useEffect(() => {
-    // React StrictModeによる重複実行を防ぐ
+    // 複数レベルの重複実行防止
     if (hasExecuted) {
-      console.log("Process already executed, skipping...");
+      console.log("Component-level: Process already executed, skipping...");
+      return;
+    }
+
+    if (isProcessingRegistration) {
+      console.log("Global-level: Registration already in progress, skipping...");
       return;
     }
 
     async function processStreaks() {
       setHasExecuted(true);
-      console.log("Register today streaks started");
+      isProcessingRegistration = true;
+
+      const today = getTodayString();
+      console.log("Register today streaks started for date:", today);
+
+      // 日付が変わっていたら処理済みセットをクリア
+      if (lastProcessedDate !== today) {
+        console.log("Date changed, clearing processed streaks set");
+        processedToday.clear();
+        lastProcessedDate = today;
+      }
 
       try {
         console.log("Step 1: Loading streaks from storage...");
@@ -42,11 +62,21 @@ function RegisterTodayStreaks() {
             // デバッグログ追加
             console.log(`Checking streak ${streak.id}: lastUpdatedAt=${streak.lastUpdatedAt}, today=${today}`);
 
+            // 複数レベルでの重複チェック
+            const streakTodayKey = `${streak.id}_${today}`;
+            if (processedToday.has(streakTodayKey)) {
+              console.log(`Global-level: Streak ${streak.id} already processed today, skipping`);
+              continue;
+            }
+
             // 今日既に更新済みかチェック
             if (isUpdatedToday(streak.lastUpdatedAt)) {
               console.log(`Streak ${streak.id} already registered today, skipping`);
               continue;
             }
+
+            // 処理開始をマーク
+            processedToday.add(streakTodayKey);
 
             const nextDay = getNextDay(streak.currentDay);
             const updatedStreak = {
@@ -55,11 +85,14 @@ function RegisterTodayStreaks() {
               lastUpdatedAt: today,
             };
 
-            // Todoistにタスクを作成
+            // Todoistにタスクを作成（重複防止のため1度だけ実行）
             console.log(`Creating Todoist task for streak: ${streak.taskContent}`);
+            let taskCreationSuccess = false;
             try {
+              // 一意のcommand UUIDで重複防止
               await createStreakTask(updatedStreak);
               console.log(`Todoist task created successfully for: ${streak.taskContent}`);
+              taskCreationSuccess = true;
 
               // API呼び出し間に遅延を追加（レート制限回避）
               console.log("Waiting 2 seconds before next API call...");
@@ -115,6 +148,7 @@ function RegisterTodayStreaks() {
         setResult(`ストリーク登録に失敗しました\n\n${errorMessage}`);
       } finally {
         setIsLoading(false);
+        isProcessingRegistration = false;
       }
     }
 

@@ -930,6 +930,9 @@ export type Streak = {
 
 const STREAKS_STORAGE_KEY = "streaks";
 
+// 進行中のタスク作成リクエストを追跡
+const activeTaskCreationRequests = new Set<string>();
+
 export async function getStreaks(): Promise<Streak[]> {
   try {
     const { LocalStorage } = await import("@raycast/api");
@@ -1159,6 +1162,16 @@ export async function createStreakTaskDirect(streak: Streak): Promise<void> {
 }
 
 export async function createStreakTask(streak: Streak): Promise<void> {
+  // 重複リクエスト防止
+  const requestKey = `${streak.id}_${streak.currentDay}_${streak.lastUpdatedAt}`;
+
+  if (activeTaskCreationRequests.has(requestKey)) {
+    console.log(`Task creation already in progress for streak ${streak.id}, skipping duplicate request`);
+    return;
+  }
+
+  activeTaskCreationRequests.add(requestKey);
+
   try {
     console.log("Creating Todoist task without pre-test to avoid duplicates...");
 
@@ -1168,7 +1181,8 @@ export async function createStreakTask(streak: Streak): Promise<void> {
 
     console.log("Creating Todoist task using sync command...");
 
-    const tempId = crypto.randomUUID();
+    // ストリークIDとタスク内容をベースにした一意のIDを生成
+    const tempId = `streak_${streak.id}_${Date.now()}`;
     const commandUuid = crypto.randomUUID();
 
     const syncData = {
@@ -1232,5 +1246,8 @@ export async function createStreakTask(streak: Streak): Promise<void> {
       }
     }
     throw error;
+  } finally {
+    // リクエスト完了後にキーを削除
+    activeTaskCreationRequests.delete(requestKey);
   }
 }
