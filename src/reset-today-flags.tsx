@@ -6,7 +6,7 @@
  * 既存パターンに合わせてAPI関数を使用する。
  */
 
-import { showToast, Toast, confirmAlert, Detail } from "@raycast/api";
+import { showToast, Toast, confirmAlert, Detail, Alert } from "@raycast/api";
 import { useEffect, useState } from "react";
 
 import { getStreaks, updateStreak } from "./api";
@@ -33,7 +33,7 @@ function ResetTodayFlags() {
         message: "全てのストリークの今日の登録状態がリセットされ、再度登録可能になります。",
         primaryAction: {
           title: "リセット実行",
-          style: "destructive" as const,
+          style: Alert.ActionStyle.Destructive,
         },
       });
 
