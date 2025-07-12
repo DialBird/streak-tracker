@@ -1,3 +1,4 @@
 node_modules
 .npmrc
 raycast-env.d.ts
+dist
