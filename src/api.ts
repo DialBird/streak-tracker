@@ -1160,13 +1160,7 @@ export async function createStreakTaskDirect(streak: Streak): Promise<void> {
 
 export async function createStreakTask(streak: Streak): Promise<void> {
   try {
-    console.log("Testing API connection first...");
-    await testTodoistApi();
-    console.log("API v1 connection test passed");
-
-    // テストとタスク作成の間に短い遅延
-    console.log("Waiting 500ms before task creation...");
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    console.log("Creating Todoist task without pre-test to avoid duplicates...");
 
     const { getPreferenceValues } = await import("@raycast/api");
     const preferences = getPreferenceValues<{ token: string }>();
@@ -1196,30 +1190,28 @@ export async function createStreakTask(streak: Streak): Promise<void> {
 
     console.log("Creating task with sync data:", JSON.stringify(syncData, null, 2));
 
-    // リトライ付きでタスク作成
-    const responseData = await retryApiCall(async () => {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 12000); // 12秒に延長
+    // シンプルなAPI呼び出し（リトライなし）
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
 
-      const response = await fetch("https://api.todoist.com/api/v1/sync", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(syncData),
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
-      }
-
-      return response.json();
+    const response = await fetch("https://api.todoist.com/api/v1/sync", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(syncData),
+      signal: controller.signal,
     });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
+    }
+
+    const responseData = await response.json();
 
     console.log("Todoist task created successfully with sync API:", responseData);
 

@@ -16,9 +16,17 @@ import { withTodoistApi } from "./helpers/withTodoistApi";
 function RegisterTodayStreaks() {
   const [isLoading, setIsLoading] = useState(true);
   const [result, setResult] = useState<string>("");
+  const [hasExecuted, setHasExecuted] = useState(false);
 
   useEffect(() => {
+    // React StrictModeによる重複実行を防ぐ
+    if (hasExecuted) {
+      console.log("Process already executed, skipping...");
+      return;
+    }
+
     async function processStreaks() {
+      setHasExecuted(true);
       console.log("Register today streaks started");
 
       try {

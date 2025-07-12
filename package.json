@@ -38,7 +38,7 @@
       "title": "Reset Today's Flags",
       "subtitle": "Streak Tracker",
       "description": "Reset today's registration flags for all streaks to allow re-registration.",
-      "mode": "no-view"
+      "mode": "view"
     },
     {
       "name": "debug-streaks",
