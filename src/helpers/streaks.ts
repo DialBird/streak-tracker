@@ -8,18 +8,49 @@
 import { Streak } from "../api";
 
 /**
- * 今日既に更新済みかチェックする
+ * 今日既に更新済みかチェックする（タイムゾーン対応）
  */
 export function isUpdatedToday(lastUpdatedAt: string): boolean {
-  const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD形式
-  return lastUpdatedAt === today;
+  const today = getTodayString(); // タイムゾーン対応の今日の日付
+  const result = lastUpdatedAt === today;
+  console.log(`isUpdatedToday: lastUpdatedAt='${lastUpdatedAt}', today='${today}', result=${result}`);
+  return result;
 }
 
 /**
- * 今日の日付をYYYY-MM-DD形式で取得
+ * 今日の日付をYYYY-MM-DD形式で取得（設定されたタイムゾーンを使用）
  */
 export function getTodayString(): string {
-  return new Date().toISOString().split("T")[0];
+  try {
+    // Raycastの設定からタイムゾーンを取得
+    const { getPreferenceValues } = require("@raycast/api");
+    const preferences = getPreferenceValues();
+    const timezone = preferences.timezone || "Asia/Tokyo";
+
+    // 指定されたタイムゾーンでの日付を取得
+    const now = new Date();
+    const todayInTimezone = new Date(now.toLocaleString("en-US", { timeZone: timezone }));
+
+    // YYYY-MM-DD形式で返す
+    const year = todayInTimezone.getFullYear();
+    const month = String(todayInTimezone.getMonth() + 1).padStart(2, "0");
+    const day = String(todayInTimezone.getDate()).padStart(2, "0");
+
+    const result = `${year}-${month}-${day}`;
+    console.log(
+      `getTodayString: timezone=${timezone}, result=${result}, UTC would be=${new Date().toISOString().split("T")[0]}`,
+    );
+
+    return result;
+  } catch (error) {
+    console.error("Failed to get timezone-aware date, falling back to local date:", error);
+    // フォールバック: ローカル日付を使用
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  }
 }
 
 /**

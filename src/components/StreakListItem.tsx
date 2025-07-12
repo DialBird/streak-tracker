@@ -44,6 +44,9 @@ export default function StreakListItem({ streak, onDelete, onEdit }: Props) {
         {
           text: `開始: ${new Date(streak.startedAt).toLocaleDateString()}`,
         },
+        {
+          text: `最終実行: ${streak.lastUpdatedAt}`,
+        },
       ]}
       actions={
         <ActionPanel>

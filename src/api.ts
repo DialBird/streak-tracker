@@ -1,14 +1,10 @@
 // This API is intended to be used for features
 // that are not available within Todoist's REST API.
 import crypto from "crypto";
-import fs from "fs";
-import path from "path";
 
-import FormData from "form-data";
-import mime from "mime";
 import { Dispatch, SetStateAction } from "react";
 
-import { getTodoistApi } from "./helpers/withTodoistApi";
+import { makeApiRequest } from "./helpers/withTodoistApi";
 
 export let sync_token = "*";
 
@@ -67,8 +63,10 @@ class SyncError extends Error {
 }
 
 export async function syncRequest(params: Record<string, unknown>) {
-  const todoistApi = getTodoistApi();
-  const { data } = await todoistApi.post<SyncData>("/sync", params);
+  const data = (await makeApiRequest("/sync", {
+    method: "POST",
+    body: JSON.stringify(params),
+  })) as SyncData;
 
   if (data.sync_status) {
     const uuid = Object.keys(data.sync_status)[0];
@@ -84,9 +82,10 @@ export async function syncRequest(params: Record<string, unknown>) {
 }
 
 export async function getFilterTasks(query: string) {
-  const todoistApi = getTodoistApi();
   try {
-    const { data } = await todoistApi.get<{ results: Task[] }>("/tasks/filter", { params: { query } });
+    const data = (await makeApiRequest(`/tasks/filter?query=${encodeURIComponent(query)}`, {
+      method: "GET",
+    })) as { results: Task[] };
     return data.results;
   } catch (error) {
     throw new Error("Error fetching filter tasks:" + error);
@@ -94,25 +93,50 @@ export async function getFilterTasks(query: string) {
 }
 
 export async function initialSync(): Promise<SyncData> {
-  const todoistApi = getTodoistApi();
-
   try {
-    // REST APIを使って必要なデータを取得
-    const [projects] = await Promise.all([todoistApi.get("/projects").then((res) => res.data)]);
+    console.log("Starting initial sync with v1 API...");
+
+    const { getPreferenceValues } = await import("@raycast/api");
+    const preferences = getPreferenceValues<{ token: string }>();
+    const token = preferences.token;
+
+    if (!token) {
+      throw new Error("Token not available");
+    }
+
+    // v1 sync APIを使ってプロジェクト一覧を取得
+    const response = await fetch("https://api.todoist.com/api/v1/sync", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        sync_token: "*",
+        resource_types: ["projects"],
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    const syncResponse = await response.json();
+    console.log("Initial sync response:", syncResponse);
 
     return {
-      sync_token: "*",
-      projects: projects || [],
-      items: [],
-      labels: [],
-      filters: [],
-      locations: [],
-      notes: [],
-      reminders: [],
-      sections: [],
-      collaborators: [],
-      collaborator_states: [],
-      user: {} as any,
+      sync_token: syncResponse.sync_token || "*",
+      projects: syncResponse.projects || [],
+      items: syncResponse.items || [],
+      labels: syncResponse.labels || [],
+      filters: syncResponse.filters || [],
+      locations: syncResponse.locations || [],
+      notes: syncResponse.notes || [],
+      reminders: syncResponse.reminders || [],
+      sections: syncResponse.sections || [],
+      collaborators: syncResponse.collaborators || [],
+      collaborator_states: syncResponse.collaborator_states || [],
+      user: syncResponse.user || ({} as any),
     };
   } catch (error) {
     console.error("Failed to sync data:", error);
@@ -275,8 +299,10 @@ type QuickAddTaskArgs = {
 };
 
 export async function quickAddTask(args: QuickAddTaskArgs) {
-  const todoistApi = getTodoistApi();
-  const { data } = await todoistApi.post<Task>("/tasks/quick", args);
+  const data = (await makeApiRequest("/tasks/quick", {
+    method: "POST",
+    body: JSON.stringify(args),
+  })) as Task;
   return data;
 }
 
@@ -837,8 +863,9 @@ export type Event = {
 };
 
 export async function getActivity() {
-  const todoistApi = getTodoistApi();
-  const { data } = await todoistApi.get<{ results: Event[] }>("/activities", { params: { event_type: "completed" } });
+  const data = (await makeApiRequest("/activities?event_type=completed", {
+    method: "GET",
+  })) as { results: Event[] };
 
   return data.results;
 }
@@ -854,8 +881,9 @@ export type Stats = {
 };
 
 export async function getProductivityStats() {
-  const todoistApi = getTodoistApi();
-  const { data } = await todoistApi.get<Stats>("/tasks/completed/stats");
+  const data = (await makeApiRequest("/tasks/completed/stats", {
+    method: "GET",
+  })) as Stats;
   return data;
 }
 
@@ -867,33 +895,22 @@ export type File = {
   upload_state: "pending" | "completed";
 };
 
-export async function uploadFile(filePath: string) {
-  const todoistApi = getTodoistApi();
-
-  const name = path.basename(filePath);
-  const stream = fs.createReadStream(filePath);
-  const { size } = fs.statSync(filePath);
-  const mimeType = mime.getType(filePath);
-
-  const formData = new FormData();
-  formData.append("file_name", name);
-  formData.append("file_size", size.toString());
-  formData.append("file_type", mimeType);
-  formData.append("file", stream);
-
-  const { data } = await todoistApi.post<File>("/uploads", formData);
-  return data;
+export async function uploadFile(): Promise<never> {
+  // TODO: この関数はFormDataを使用しているため、fetchベースの実装は後で対応
+  throw new Error("uploadFile is not yet implemented with fetch API");
 }
 
 export async function getTask(id: string) {
-  const todoistApi = getTodoistApi();
-  const { data } = await todoistApi.get<Task>(`/tasks/${id}`);
+  const data = (await makeApiRequest(`/tasks/${id}`, {
+    method: "GET",
+  })) as Task;
   return data;
 }
 
 export async function getProject(id: string) {
-  const todoistApi = getTodoistApi();
-  const { data } = await todoistApi.get<Project>(`/projects/${id}`);
+  const data = (await makeApiRequest(`/projects/${id}`, {
+    method: "GET",
+  })) as Project;
   return data;
 }
 
@@ -984,12 +1001,244 @@ export async function deleteStreak(streakId: string): Promise<void> {
   }
 }
 
-export async function createStreakTask(streak: Streak): Promise<void> {
-  const todoistApi = getTodoistApi();
-  await todoistApi.post("/tasks", {
-    content: `${streak.taskContent} - ${streak.currentDay}日目`,
-    project_id: streak.projectId,
-    priority: streak.priority,
-    due_string: "today",
+// UIの優先度をTodoist APIの優先度に変換
+function convertPriorityToTodoistApi(uiPriority: 1 | 2 | 3 | 4): 1 | 2 | 3 | 4 {
+  // UI: P1(緊急)=1, P2(高)=2, P3(普通)=3, P4(低)=4
+  // API: 1=Low(低), 2=Normal(普通), 3=Important(高), 4=Urgent(緊急)
+  switch (uiPriority) {
+    case 1: // P1(緊急) -> API 4(Urgent)
+      return 4;
+    case 2: // P2(高) -> API 3(Important)
+      return 3;
+    case 3: // P3(普通) -> API 2(Normal)
+      return 2;
+    case 4: // P4(低) -> API 1(Low)
+      return 1;
+    default:
+      return 1;
+  }
+}
+
+// リトライ付きAPI呼び出し
+async function retryApiCall<T>(fn: () => Promise<T>, maxRetries = 3, delay = 1000): Promise<T> {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(`API call attempt ${attempt}/${maxRetries}`);
+      return await fn();
+    } catch (error) {
+      console.error(`API call attempt ${attempt} failed:`, error);
+
+      if (attempt === maxRetries) {
+        throw error;
+      }
+
+      console.log(`Retrying in ${delay}ms...`);
+      await new Promise((resolve) => setTimeout(resolve, delay));
+      delay *= 2; // exponential backoff
+    }
+  }
+  throw new Error("Unreachable code");
+}
+
+// 簡単なAPI接続テスト関数 - fetch APIを使用 (v1)
+export async function testTodoistApi(): Promise<void> {
+  return retryApiCall(async () => {
+    console.log("Testing Todoist API v1 connection with sync endpoint...");
+
+    const { getPreferenceValues } = await import("@raycast/api");
+    const preferences = getPreferenceValues<{ token: string }>();
+    const token = preferences.token;
+
+    if (!token) {
+      throw new Error("Token not available");
+    }
+
+    console.log("Making POST sync request to get projects...");
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000); // 8秒に延長
+
+    const response = await fetch("https://api.todoist.com/api/v1/sync", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        sync_token: "*",
+        resource_types: ["projects"],
+      }),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    console.log("API v1 sync test successful:", response.status);
+    const data = await response.json();
+    console.log("Projects count:", data.projects?.length || 0);
   });
+}
+
+// バックグラウンド処理専用のタスク作成関数（テストなし）
+export async function createStreakTaskDirect(streak: Streak): Promise<void> {
+  try {
+    console.log("Creating Todoist task directly without pre-test...");
+
+    const { getPreferenceValues } = await import("@raycast/api");
+    const preferences = getPreferenceValues<{ token: string }>();
+    const token = preferences.token;
+
+    const tempId = crypto.randomUUID();
+    const commandUuid = crypto.randomUUID();
+
+    const syncData = {
+      sync_token: "*",
+      commands: [
+        {
+          type: "item_add",
+          temp_id: tempId,
+          uuid: commandUuid,
+          args: {
+            content: `${streak.taskContent} - ${streak.currentDay}日目`,
+            project_id: streak.projectId,
+            priority: convertPriorityToTodoistApi(streak.priority),
+            due: { string: "today" },
+          },
+        },
+      ],
+    };
+
+    console.log("Creating task with direct sync data:", JSON.stringify(syncData, null, 2));
+
+    // シンプルなfetch（リトライなし）
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+    const response = await fetch("https://api.todoist.com/api/v1/sync", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(syncData),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
+    }
+
+    const responseData = await response.json();
+    console.log("Todoist task created successfully with direct sync API:", responseData);
+
+    // sync_statusをチェック
+    if (responseData.sync_status && responseData.sync_status[commandUuid] !== "ok") {
+      const error = responseData.sync_status[commandUuid];
+      throw new Error(`Sync command failed: ${error.error || "Unknown error"}`);
+    }
+  } catch (error) {
+    console.error("Failed to create Todoist task with direct sync API:", error);
+
+    if (error instanceof Error) {
+      console.error("Error name:", error.name);
+      console.error("Error message:", error.message);
+
+      if (error.name === "AbortError") {
+        throw new Error("Request timed out - please check your connection");
+      }
+    }
+    throw error;
+  }
+}
+
+export async function createStreakTask(streak: Streak): Promise<void> {
+  try {
+    console.log("Testing API connection first...");
+    await testTodoistApi();
+    console.log("API v1 connection test passed");
+
+    // テストとタスク作成の間に短い遅延
+    console.log("Waiting 500ms before task creation...");
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    const { getPreferenceValues } = await import("@raycast/api");
+    const preferences = getPreferenceValues<{ token: string }>();
+    const token = preferences.token;
+
+    console.log("Creating Todoist task using sync command...");
+
+    const tempId = crypto.randomUUID();
+    const commandUuid = crypto.randomUUID();
+
+    const syncData = {
+      sync_token: "*",
+      commands: [
+        {
+          type: "item_add",
+          temp_id: tempId,
+          uuid: commandUuid,
+          args: {
+            content: `${streak.taskContent} - ${streak.currentDay}日目`,
+            project_id: streak.projectId,
+            priority: convertPriorityToTodoistApi(streak.priority),
+            due: { string: "today" },
+          },
+        },
+      ],
+    };
+
+    console.log("Creating task with sync data:", JSON.stringify(syncData, null, 2));
+
+    // リトライ付きでタスク作成
+    const responseData = await retryApiCall(async () => {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 12000); // 12秒に延長
+
+      const response = await fetch("https://api.todoist.com/api/v1/sync", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(syncData),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
+      }
+
+      return response.json();
+    });
+
+    console.log("Todoist task created successfully with sync API:", responseData);
+
+    // sync_statusをチェック
+    if (responseData.sync_status && responseData.sync_status[commandUuid] !== "ok") {
+      const error = responseData.sync_status[commandUuid];
+      throw new Error(`Sync command failed: ${error.error || "Unknown error"}`);
+    }
+  } catch (error) {
+    console.error("Failed to create Todoist task with sync API:", error);
+
+    if (error instanceof Error) {
+      console.error("Error name:", error.name);
+      console.error("Error message:", error.message);
+
+      if (error.name === "AbortError") {
+        throw new Error("Request timed out - please check your connection");
+      }
+    }
+    throw error;
+  }
 }

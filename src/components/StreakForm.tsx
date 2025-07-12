@@ -24,6 +24,7 @@ export default function StreakForm({ onStreakCreated }: Props) {
   const [taskContent, setTaskContent] = useState("");
   const [projectId, setProjectId] = useState("");
   const [priority, setPriority] = useState<1 | 2 | 3 | 4>(4);
+  const [currentDay, setCurrentDay] = useState("1");
 
   async function handleSubmit() {
     if (!taskContent.trim()) {
@@ -34,13 +35,22 @@ export default function StreakForm({ onStreakCreated }: Props) {
       return;
     }
 
+    const dayNumber = parseInt(currentDay);
+    if (isNaN(dayNumber) || dayNumber < 1) {
+      await showToast({
+        style: Toast.Style.Failure,
+        title: "日数は1以上の数値を入力してください",
+      });
+      return;
+    }
+
     try {
       const streak: Streak = {
         id: nanoid(),
         taskContent: taskContent.trim(),
         projectId: projectId || undefined,
         priority,
-        currentDay: 1,
+        currentDay: dayNumber,
         startedAt: new Date().toISOString(),
         lastUpdatedAt: getTodayString(),
       };
@@ -54,7 +64,7 @@ export default function StreakForm({ onStreakCreated }: Props) {
       await showToast({
         style: Toast.Style.Success,
         title: "ストリーク開始",
-        message: `${taskContent} - 1日目のタスクを作成しました`,
+        message: `${taskContent} - ${dayNumber}日目のタスクを作成しました`,
       });
 
       pop();
@@ -68,7 +78,12 @@ export default function StreakForm({ onStreakCreated }: Props) {
     }
   }
 
-  const projects = data?.projects || [];
+  const projects = Array.isArray(data?.projects) ? data.projects : [];
+
+  // デバッグログ
+  console.log("StreakForm - data:", data);
+  console.log("StreakForm - projects:", projects);
+  console.log("StreakForm - projects is array:", Array.isArray(projects));
 
   return (
     <Form
@@ -84,6 +99,14 @@ export default function StreakForm({ onStreakCreated }: Props) {
         placeholder="例: 英語学習"
         value={taskContent}
         onChange={setTaskContent}
+      />
+      <Form.TextField
+        id="currentDay"
+        title="開始日数"
+        placeholder="例: 1"
+        value={currentDay}
+        onChange={setCurrentDay}
+        info="既に何日か継続している場合は、その日数を入力してください"
       />
       <Form.Dropdown id="projectId" title="プロジェクト" value={projectId} onChange={setProjectId}>
         <Form.Dropdown.Item value="" title="インボックス" />

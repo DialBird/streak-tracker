@@ -27,12 +27,25 @@
       "mode": "view"
     },
     {
-      "name": "streak-background",
-      "title": "Streak Background Updater",
+      "name": "register-today",
+      "title": "Register Today's Streaks",
       "subtitle": "Streak Tracker",
-      "description": "Automatically update streak tasks daily in the background.",
-      "mode": "no-view",
-      "interval": "1h"
+      "description": "Manually register today's streak tasks and increment day counts.",
+      "mode": "view"
+    },
+    {
+      "name": "reset-today-flags",
+      "title": "Reset Today's Flags",
+      "subtitle": "Streak Tracker",
+      "description": "Reset today's registration flags for all streaks to allow re-registration.",
+      "mode": "no-view"
+    },
+    {
+      "name": "debug-streaks",
+      "title": "Debug Streaks",
+      "subtitle": "Streak Tracker",
+      "description": "Debug streak data and registration flags for troubleshooting.",
+      "mode": "no-view"
     }
   ],
   "tools": [

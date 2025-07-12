@@ -7,16 +7,36 @@
  */
 
 import { getPreferenceValues } from "@raycast/api";
-import axios from "axios";
 import React from "react";
 
-let todoistApi: ReturnType<typeof axios.create>;
+// fetchベースの簡単なAPI関数
+export async function makeApiRequest(endpoint: string, options: RequestInit = {}) {
+  const preferences = getPreferenceValues<{ token: string }>();
+  const token = preferences.token;
 
-export function getTodoistApi() {
-  if (!todoistApi) {
-    throw new Error("Todoist API not initialized");
+  if (!token) {
+    throw new Error("Todoist API not initialized - token missing");
   }
-  return todoistApi;
+
+  const response = await fetch(`https://api.todoist.com/api/v1${endpoint}`, {
+    ...options,
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+  }
+
+  return response.json();
+}
+
+// 互換性のため残しているが、もう使用しない
+export function getTodoistApi() {
+  throw new Error("getTodoistApi is deprecated - use makeApiRequest instead");
 }
 
 interface Preferences {
@@ -25,6 +45,7 @@ interface Preferences {
   timezone: string;
 }
 
+// 単純化されたHOC（fetchベース）
 export function withTodoistApi<T extends object>(Component: React.ComponentType<T>) {
   return function WithTodoistApiComponent(props: T) {
     React.useEffect(() => {
@@ -32,19 +53,13 @@ export function withTodoistApi<T extends object>(Component: React.ComponentType<
         const preferences = getPreferenceValues<Preferences>();
         const token = preferences.token;
 
-        if (token) {
-          todoistApi = axios.create({
-            baseURL: "https://api.todoist.com/rest/v2",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          });
-        } else {
+        if (!token) {
           console.warn("Todoist token not found in preferences");
+        } else {
+          console.log("Todoist API ready with fetch-based implementation");
         }
       } catch (error) {
-        console.error("Failed to initialize Todoist API:", error);
+        console.error("Failed to check Todoist API credentials:", error);
       }
     }, []);
 
